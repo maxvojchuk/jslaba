@@ -105,3 +105,98 @@ async function getRegion(iso3) {
         return 'Не вдалося завантажити';
     }
 }
+// Завантажує назви, прапори та основні дані для випадаючого списку.
+async function loadCountries() {
+    try {
+        const data = await fetchJson(
+            ${COUNTRIES_API}/countries/info?returns=name,flag,capital,currency,iso2,iso3
+        );
+        if (data.error  !Array.isArray(data.data)) {
+            throw new Error(data.msg  'API повернув некоректний список країн');
+        }
+
+        const countries = data.data
+            .filter(country => country.name && country.iso3)
+            .sort((first, second) => first.name.localeCompare(second.name, 'uk'));
+
+        if (countries.length === 0) {
+            throw new Error('API не повернув жодної країни');
+        }
+
+        for (const country of countries) {
+            countriesByName.set(country.name, country);
+        }
+
+        const options = countries.map(country => new Option(country.name, country.name));
+        selectElement.replaceChildren(new Option('Оберіть країну...', ''), ...options);
+        selectElement.disabled = false;
+
+        const message = document.createElement('p');
+        message.textContent = 'Оберіть країну зі списку, щоб переглянути дані.';
+        infoContainer.replaceChildren(message);
+    } catch (error) {
+        console.error('Помилка завантаження списку країн:', error);
+        selectElement.replaceChildren(new Option('Не вдалося завантажити країни', ''));
+        infoContainer.textContent =
+            'Не вдалося завантажити список країн. Перевірте з’єднання та оновіть сторінку.';
+    }
+}
+
+// Динамічно показує дані вибраної країни.
+async function showCountry(countryName) {
+    const requestId = ++countryRequestId;
+    const country = countriesByName.get(countryName);
+
+    if (!countryName  !country) {
+        infoContainer.textContent = 'Оберіть країну зі списку, щоб переглянути дані.';
+        return;
+    }
+
+    infoContainer.textContent = 'Завантаження даних...';
+
+    try {
+        const [population, region] = await Promise.all([
+            getPopulation(country),
+            getRegion(country.iso3)
+        ]);
+
+        if (requestId !== countryRequestId) {
+            return;
+        }
+
+        const content = document.createDocumentFragment();
+        addInfoRow(content, 'Назва країни', country.name);
+        addInfoRow(content, 'Столиця', country.capital  'Не вказано');
+        addInfoRow(
+            content,
+            population ? Населення (${population.year}) : 'Населення',
+            population ? population.value.toLocaleString('uk-UA') : 'Дані недоступні'
+        );
+        addInfoRow(content, 'Регіон', region);
+        addInfoRow(content, 'Валюта', country.currency  'Не вказано');
+        addInfoRow(content, 'Код ISO', `${country.iso2  '—'} / ${country.iso3}`);
+
+        if (country.flag) {
+            const flag = document.createElement('img');
+            flag.className = 'flag';
+            flag.src = country.flag;
+            flag.alt = Прапор країни ${country.name};
+            content.appendChild(flag);
+        }
+
+        infoContainer.replaceChildren(content);
+    } catch (error) {
+        console.error('Помилка завантаження даних про країну:', error);
+        if (requestId === countryRequestId) {
+            infoContainer.textContent =
+                Не вдалося завантажити дані про ${country.name}: ${error.message}.  +
+                'Спробуйте ще раз пізніше.';
+        }
+    }
+}
+
+selectElement.addEventListener('change', event => {
+    showCountry(event.target.value);
+});
+
+loadCountries();
