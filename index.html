@@ -1,11 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Лабораторна робота №4 — Країни світу</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="script.js" defer></script>
 </head>
 <body>
-    
+    <main>
+        <h1>Лабораторна робота №4</h1>
+        <h2>Динамічне оновлення web-сторінки</h2>
+        <p class="api-note">
+            Дані завантажуються з безкоштовних API CountriesNow та Світового банку,
+            оскільки Rest Countries v3.1 більше не працює.
+        </p>
+
+        <label for="countrySelect">Оберіть країну:</label>
+        <select id="countrySelect" disabled>
+            <option value="">Завантаження списку країн...</option>
+        </select>
+
+        <section class="info-block" id="countryInfo" aria-live="polite">
+            <p>Список країн завантажується...</p>
+        </section>
+
+        <div class="authors">Виконав(ла): ____________________</div>
+    </main>
 </body>
 </html>
